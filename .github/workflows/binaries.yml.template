@@ -1,0 +1,48 @@
+name: Publish binaries
+
+on:
+  push:
+    tags:
+      - '*'
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    
+    - uses: olegtarasov/get-tag@v2.1
+      id: tagName
+          
+    - uses: actions/checkout@v2
+
+    - name: Check if package contains cli commands
+      id: check_files
+      uses: andstor/file-existence-action@v1
+      with:
+        files: "cli"
+
+    - name: Set up Go
+      if: steps.check_files.outputs.files_exists == 'true'
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16.x
+
+    - name: Build binaries
+      if: steps.check_files.outputs.files_exists == 'true'
+      run: |
+        mkdir -p out
+        for dir in `find cli -type d | tail -n +2`; do
+          name=`basename $dir`
+          go build -o out/$name -ldflags="-X 'main.Version="$GIT_TAG_NAME"'" ./cli/$name
+          ./out/$name -v
+        done
+    
+
+    - name: Upload binaries to release
+      if: steps.check_files.outputs.files_exists == 'true'
+      uses: svenstaro/upload-release-action@v2
+      with:
+        repo_token: ${{"{{"}} secrets.GITHUB_TOKEN {{"}}"}}
+        file: out/*
+        file_glob: true
+        tag: ${{"{{"}} github.ref {{"}}"}}
+        body: "amd64 binary"
