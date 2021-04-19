@@ -41,8 +41,8 @@ jobs:
       if: steps.check_files.outputs.files_exists == 'true'
       uses: svenstaro/upload-release-action@v2
       with:
-        repo_token: ${{"{{"}} secrets.GITHUB_TOKEN {{"}}"}}
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
         file: out/*
         file_glob: true
-        tag: ${{"{{"}} github.ref {{"}}"}}
+        tag: ${{ github.ref }}
         body: "amd64 binary"

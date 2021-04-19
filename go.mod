@@ -1,4 +1,4 @@
-module github.com/{{.Author}}/{{.RepoName}}
+module github.com/parrogo/horzmerge
 
 go 1.16
 
