@@ -78,7 +78,6 @@ func Merge(opt Options, readers ...io.Reader) error {
 				hash[idxField] = val
 			}
 		}
-
 	}
 
 	var werr error
