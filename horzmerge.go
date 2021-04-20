@@ -55,13 +55,13 @@ func Merge(opt Options, readers ...io.Reader) error {
 
 	headers, err := readHeaders(sources[0])
 	if err != nil {
-		return fmt.Errorf("error reading from source %d: %w", 0, err)
+		return fmt.Errorf("error reading from source %d: %w", 0, InputError{err, 0})
 	}
 
 	for idx, source := range sources[1:] {
 		err := checkHeaders(source, headers)
 		if err != nil {
-			return fmt.Errorf("error reading from source %d: %w", idx+1, err)
+			return fmt.Errorf("error reading from source %d: %w", idx+1, InputError{err, idx + 1})
 		}
 	}
 
@@ -70,7 +70,7 @@ func Merge(opt Options, readers ...io.Reader) error {
 	for idxSrc, source := range sources {
 		values, err := readValues(source)
 		if err != nil {
-			return fmt.Errorf("error reading from source %d: %w", idxSrc, err)
+			return fmt.Errorf("error reading from source %d: %w", idxSrc, InputError{err, idxSrc})
 		}
 
 		for idxField, val := range values {
