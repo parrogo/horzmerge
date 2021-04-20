@@ -48,34 +48,39 @@ func Merge(opt Options, readers ...io.Reader) error {
 		out = bufio.NewWriter(os.Stdout)
 	}
 
-	sources := make([]*bufio.Reader, len(readers))
+	sources := make([]map[string]string, len(readers))
+
+	headerOrder := map[string]int{}
+
 	for idx, r := range readers {
-		sources[idx] = bufio.NewReader(r)
-	}
-
-	headers, err := readHeaders(sources[0])
-	if err != nil {
-		return fmt.Errorf("error reading from source %d: %w", 0, InputError{err, 0})
-	}
-
-	for idx, source := range sources[1:] {
-		err := checkHeaders(source, headers)
-		if err != nil {
-			return fmt.Errorf("error reading from source %d: %w", idx+1, InputError{err, idx + 1})
+		source := bufio.NewReader(r)
+		headers, err := readHeaders(source)
+		for _, h := range headers {
+			if _, exists := headerOrder[h]; !exists {
+				headerOrder[h] = len(headerOrder)
+			}
 		}
-	}
-
-	hash := make([]string, len(headers))
-
-	for idxSrc, source := range sources {
+		if err != nil {
+			return fmt.Errorf("error reading from source %d: %w", idx, InputError{err, idx})
+		}
 		values, err := readValues(source)
 		if err != nil {
-			return fmt.Errorf("error reading from source %d: %w", idxSrc, InputError{err, idxSrc})
+			return fmt.Errorf("error reading from source %d: %w", idx, InputError{err, idx})
 		}
 
-		for idxField, val := range values {
-			if hash[idxField] == "" && strings.TrimSpace(val) != opt.Empty {
-				hash[idxField] = val
+		hash := map[string]string{}
+		for idx, head := range headers {
+			val := values[idx]
+			hash[head] = val
+		}
+		sources[idx] = hash
+	}
+
+	merged := map[string]string{}
+	for _, hash := range sources {
+		for key, val := range hash {
+			if mv, exists := merged[key]; !exists || strings.TrimSpace(mv) == opt.Empty {
+				merged[key] = val
 			}
 		}
 	}
@@ -92,14 +97,23 @@ func Merge(opt Options, readers ...io.Reader) error {
 		}
 	}
 
+	headers := make([]string, len(merged))
+	values := make([]string, len(merged))
+
+	for k, v := range merged {
+		idx := headerOrder[k]
+		headers[idx] = k
+		values[idx] = v
+		idx++
+	}
+
 	for _, h := range headers {
 		write(h)
-
 	}
 
 	write("\n")
 
-	for _, v := range hash {
+	for _, v := range values {
 		write(v)
 	}
 
